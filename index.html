@@ -1,262 +1,318 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ANS 自主神经系统调查问卷</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-.option-btn { transition: all 0.2s; border: 1px solid #e2e8f0; }
-.option-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
-.sticky-header { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-bottom: 1px solid #e2e8f0; }
-.progress-ring { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANS 自主神经平衡评估</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #f8fafc; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .option-btn { 
+            transition: all 0.2s ease; 
+            border: 1px solid #e2e8f0; 
+            cursor: pointer; 
+            background-color: #ffffff; 
+            color: #4b5563; 
+            flex: 1; 
+            text-align: center;
+            white-space: nowrap; 
+        }
+        .option-btn.active { 
+            background-color: #2563eb !important; 
+            color: #ffffff !important; 
+            border-color: #1d4ed8 !important; 
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); 
+            font-weight: 600; 
+        }
+        .sticky-header { 
+            position: sticky; 
+            top: 0; 
+            z-index: 50; 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(8px); 
+            border-bottom: 1px solid #e2e8f0; 
+        }
+        #result-modal { 
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #result-modal.show { 
+            display: flex !important;
+        }
+        @media (max-width: 480px) {
+            .option-btn { font-size: 11px; padding: 10px 2px; }
+        }
+    </style>
 </head>
 <body class="pb-10">
 
 <div id="app" class="max-w-2xl mx-auto">
-<!-- Header -->
-<header class="sticky-header p-4 mb-6 shadow-sm">
-<h1 class="text-xl font-bold text-gray-800 text-center">ANS 自主神经平衡评估</h1>
-<div id="progress-bar" class="w-full bg-gray-200 h-1.5 mt-2 rounded-full overflow-hidden">
-<div id="progress-inner" class="bg-blue-500 h-full w-0 transition-all"></div>
-</div>
-</header>
+    <header class="sticky-header p-4 mb-6 shadow-sm text-center">
+        <h1 class="text-xl font-bold text-gray-800">ANS 自主神经平衡评估</h1>
+        <div class="w-full bg-gray-200 h-1.5 mt-2 rounded-full overflow-hidden">
+            <div id="progress-inner" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+        <p id="progress-text" class="text-[10px] text-gray-400 mt-1 text-center">已完成 0 / 95</p>
+    </header>
 
-<!-- Content -->
-<div id="survey-content" class="px-4">
-<div id="questions-list"></div>
-<div class="mt-8 mb-12">
-<button id="submit-btn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 disabled:opacity-50">
-查看评估结果
-</button>
-</div>
-</div>
+    <div class="px-4">
+        <div id="questions-list">
+            <p class="text-center py-10 text-gray-400 text-sm">正在加载评估题目...</p>
+        </div>
+        
+        <div class="mt-8 mb-12">
+            <button id="submit-btn" onclick="handleSubmit()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
+                查看详细评估报告
+            </button>
+        </div>
+    </div>
 
-<!-- Result Modal -->
-<div id="result-modal" class="fixed inset-0 z-[100] hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-<div class="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
-<h2 class="text-2xl font-bold text-center mb-6 text-gray-800">评估结果报告</h2>
-<div id="charts-container" class="space-y-6">
-<!-- Result items will be injected here -->
-</div>
+    <!-- 结果弹窗 -->
+    <div id="result-modal" onclick="if(event.target==this) closeModal()">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative" onclick="event.stopPropagation()">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">ANS 自主神经评估报告</h2>
+            
+            <!-- 综合评分 -->
+            <div id="overall-status" class="mb-8 text-center p-4 rounded-xl border-2">
+                <!-- 由JS填充 -->
+            </div>
 
-<div class="mt-8 border-t pt-6 text-sm text-gray-500">
-<p>* 占比计算逻辑：该分支总分 / 三个分支总分之和。</p>
-<p>* 本问卷仅供参考，不作为医学诊断建议。</p>
-</div>
+            <div id="charts-container" class="space-y-6 mb-8">
+                <!-- 结果卡片将插入此处 -->
+            </div>
 
-<button id="close-modal" class="w-full mt-6 bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold">
-返回修改
-</button>
-</div>
-</div>
+            <!-- 模式分析 -->
+            <div id="pattern-analysis" class="mt-8 pt-6 border-t">
+                <!-- 由JS填充模式结论 -->
+            </div>
+
+            <button onclick="closeModal()" class="w-full mt-10 bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
+                返回修改
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
-const questionsData = [
-{ id: 1, text: "脸色苍白", branch: "dorsal" },
-{ id: 2, text: "出冷汗", branch: "dorsal" },
-{ id: 3, text: "感觉冷", branch: "dorsal" },
-{ id: 4, text: "有静脉曲张", branch: "dorsal" },
-{ id: 5, text: "可能有皮肤病", branch: "dorsal" },
-{ id: 6, text: "脸很油", branch: "dorsal" },
-{ id: 7, text: "有息肉", branch: "dorsal" },
-{ id: 8, text: "感觉自己没有情绪", branch: "dorsal" },
-{ id: 9, text: "有社交困难，所以避免接触其他人", branch: "dorsal" },
-{ id: 10, text: "宁愿不跟外界打交道，躲在家里感觉比较好", branch: "dorsal" },
-{ id: 11, text: "感到绝望", branch: "dorsal" },
-{ id: 12, text: "感到伤心", branch: "dorsal" },
-{ id: 13, text: "喜欢一个人独处", branch: "dorsal" },
-{ id: 14, text: "感到沮丧", branch: "dorsal" },
-{ id: 15, text: "感到焦虑", branch: "dorsal" },
-{ id: 16, text: "感到忧愁", branch: "dorsal" },
-{ id: 17, text: "感到昏昏沉沉", branch: "dorsal" },
-{ id: 18, text: "感到乏力", branch: "dorsal" },
-{ id: 19, text: "害怕生病", branch: "dorsal" },
-{ id: 20, text: "睡太多了，但没办法", branch: "dorsal" },
-{ id: 21, text: "感到疲倦", branch: "dorsal" },
-{ id: 22, text: "一直吞咽空气", branch: "dorsal" },
-{ id: 23, text: "觉得胃灼热", branch: "dorsal" },
-{ id: 24, text: "有胃食管反流", branch: "dorsal" },
-{ id: 25, text: "有恶心感", branch: "dorsal" },
-{ id: 26, text: "肠子在抽筋或疼痛", branch: "dorsal" },
-{ id: 27, text: "有腹泻", branch: "dorsal" },
-{ id: 28, text: "饭后觉得消化有问题", branch: "dorsal" },
-{ id: 29, text: "放一堆屁", branch: "dorsal" },
-{ id: 30, text: "感觉要晕倒", branch: "dorsal" },
-{ id: 31, text: "感到极度虚弱", branch: "dorsal" },
-{ id: 32, text: "即使运动时，也觉得心跳非常慢", branch: "dorsal" },
-{ id: 33, text: "感觉自己好像呼吸不到空气", branch: "dorsal" },
-{ id: 34, text: "想要增肥", branch: "dorsal" },
-{ id: 35, text: "早上起床觉得很累不想出门", branch: "dorsal" },
-{ id: 36, text: "平常感觉肌肉无力", branch: "dorsal" },
-{ id: 37, text: "对低声音很敏感", branch: "dorsal" },
-{ id: 38, text: "有阳痿或阴道痉挛", branch: "dorsal" },
-{ id: 39, text: "经常急着上厕所", branch: "dorsal" },
-// 交感神经分支 (40-74)
-{ id: 40, text: "经常汗流浃背并觉得热", branch: "sympathetic" },
-{ id: 41, text: "手脚冰凉、颤抖", branch: "sympathetic" },
-{ id: 42, text: "肌肉一直很紧张", branch: "sympathetic" },
-{ id: 43, text: "容易水肿", branch: "sympathetic" },
-{ id: 44, text: "容易神经质或易怒", branch: "sympathetic" },
-{ id: 45, text: "情绪紧张且反应大", branch: "sympathetic" },
-{ id: 46, text: "在外面非常警惕", branch: "sympathetic" },
-{ id: 47, text: "可以非常疯狂", branch: "sympathetic" },
-{ id: 48, text: "反应过度", branch: "sympathetic" },
-{ id: 49, text: "固执", branch: "sympathetic" },
-{ id: 50, text: "很难入睡且失眠", branch: "sympathetic" },
-{ id: 51, text: "感觉环境或人人都有威胁性", branch: "sympathetic" },
-{ id: 52, text: "需要运动或参加一些活动来感觉良好", branch: "sympathetic" },
-{ id: 53, text: "对压力敏感", branch: "sympathetic" },
-{ id: 54, text: "冲动", branch: "sympathetic" },
-{ id: 55, text: "感到威胁时会好斗", branch: "sympathetic" },
-{ id: 56, text: "到晚上也在认真考虑问题", branch: "sympathetic" },
-{ id: 57, text: "胆囊有问题", branch: "sympathetic" },
-{ id: 58, text: "饭后会腹痛", branch: "sympathetic" },
-{ id: 59, text: "被胃炎或溃疡折磨", branch: "sympathetic" },
-{ id: 60, text: "消化慢", branch: "sympathetic" },
-{ id: 61, text: "便秘", branch: "sympathetic" },
-{ id: 62, text: "心率总是高于80次/min", branch: "sympathetic" },
-{ id: 63, text: "血压高", branch: "sympathetic" },
-{ id: 64, text: "心律不齐", branch: "sympathetic" },
-{ id: 65, text: "心跳得很快而且能感觉到", branch: "sympathetic" },
-{ id: 66, text: "胖不起来", branch: "sympathetic" },
-{ id: 67, text: "比起身体其他地方，肚子非常胖", branch: "sympathetic" },
-{ id: 68, text: "肌肉过度紧张，关节、肌肉、肌腱或背会痛", branch: "sympathetic" },
-{ id: 69, text: "感觉牙关紧闭或下巴紧绷", branch: "sympathetic" },
-{ id: 70, text: "血糖太高", branch: "sympathetic" },
-{ id: 71, text: "常出现病毒或细菌感染", branch: "sympathetic" },
-{ id: 72, text: "睡觉会磨牙", branch: "sympathetic" },
-{ id: 73, text: "呼吸短且浅，经常需要深呼吸", branch: "sympathetic" },
-{ id: 74, text: "无法对性行为感到愉悦或者有早泄", branch: "sympathetic" },
-// 新迷走神经分支 (75-95)
-{ id: 75, text: "无法边吃饭边呼吸", branch: "ventral" },
-{ id: 76, text: "无法同时调节吃饭与呼吸", branch: "ventral" },
-{ id: 77, text: "无法同时调节吃饭与说话", branch: "ventral" },
-{ id: 78, text: "吃饭声音大", branch: "ventral" },
-{ id: 79, text: "在讲话时经常咳嗽或吞口水", branch: "ventral" },
-{ id: 80, text: "吃饭时感觉食物很干会卡在嘴里或喉咙里", branch: "ventral" },
-{ id: 81, text: "感觉口水一直在嘴角", branch: "ventral" },
-{ id: 82, text: "很难控制眼球运动", branch: "ventral" },
-{ id: 83, text: "有耳鸣或眩晕", branch: "ventral" },
-{ id: 84, text: "有过敏、耳鼻喉问题、鼻炎、鼻窦炎", branch: "ventral" },
-{ id: 85, text: "很容易喘不过气", branch: "ventral" },
-{ id: 86, text: "有影响讲话或吃东西的慢性咳嗽", branch: "ventral" },
-{ id: 87, text: "有胸痛", branch: "ventral" },
-{ id: 88, text: "感觉呼吸的时候吸不到氧气", branch: "ventral" },
-{ id: 89, text: "有哮喘", branch: "ventral" },
-{ id: 90, text: "有自身免疫性疾病", branch: "ventral" },
-{ id: 91, text: "感觉疲惫", branch: "ventral" },
-{ id: 92, text: "有反复的感染且需要很长时间才会治愈", branch: "ventral" },
-{ id: 93, text: "有心脏问题，如心跳过快", branch: "ventral" },
-{ id: 94, text: "血压低，而且常低于 100～110 mmHg", branch: "ventral" },
-{ id: 95, text: "头皮痒", branch: "ventral" }
-];
+    const questionsData = [
+        // 原始迷走 (Dorsal Vagal) 1-39
+        { id: 1, text: "脸色苍白", branch: "dorsal" }, { id: 2, text: "出冷汗", branch: "dorsal" }, { id: 3, text: "感觉冷", branch: "dorsal" },
+        { id: 4, text: "有静脉曲张", branch: "dorsal" }, { id: 5, text: "可能有皮肤病", branch: "dorsal" }, { id: 6, text: "脸很油", branch: "dorsal" },
+        { id: 7, text: "有息肉", branch: "dorsal" }, { id: 8, text: "感觉自己没有情绪", branch: "dorsal" }, { id: 9, text: "有社交困难，避免接触其他人", branch: "dorsal" },
+        { id: 10, text: "宁愿不跟外界打交道，躲在家里", branch: "dorsal" }, { id: 11, text: "感到绝望", branch: "dorsal" }, { id: 12, text: "感到伤心", branch: "dorsal" },
+        { id: 13, text: "喜欢一个人独处", branch: "dorsal" }, { id: 14, text: "感到沮丧", branch: "dorsal" }, { id: 15, text: "感到焦虑", branch: "dorsal" },
+        { id: 16, text: "感到忧愁", branch: "dorsal" }, { id: 17, text: "感到昏昏沉沉", branch: "dorsal" }, { id: 18, text: "感到乏力", branch: "dorsal" },
+        { id: 19, text: "害怕生病", branch: "dorsal" }, { id: 20, text: "睡太多了，但没办法", branch: "dorsal" }, { id: 21, text: "感到疲倦", branch: "dorsal" },
+        { id: 22, text: "一直吞咽空气", branch: "dorsal" }, { id: 23, text: "觉得胃灼热", branch: "dorsal" }, { id: 24, text: "有胃食管反流", branch: "dorsal" },
+        { id: 25, text: "有恶心感", branch: "dorsal" }, { id: 26, text: "肠子在抽筋或疼痛", branch: "dorsal" }, { id: 27, text: "有腹泻", branch: "dorsal" },
+        { id: 28, text: "饭后觉得消化有问题", branch: "dorsal" }, { id: 29, text: "放一堆屁", branch: "dorsal" }, { id: 30, text: "感觉要晕倒", branch: "dorsal" },
+        { id: 31, text: "感到极度虚弱", branch: "dorsal" }, { id: 32, text: "运动时也心跳非常慢", branch: "dorsal" }, { id: 33, text: "呼吸不到空气", branch: "dorsal" },
+        { id: 34, text: "想要增肥", branch: "dorsal" }, { id: 35, text: "早上起床觉得很累", branch: "dorsal" }, { id: 36, text: "肌肉无力", branch: "dorsal" },
+        { id: 37, text: "对低音敏感", branch: "dorsal" }, { id: 38, text: "性功能障碍", branch: "dorsal" }, { id: 39, text: "经常急着上厕所", branch: "dorsal" },
 
-const options = [
-{ label: "不/从不", value: 0 },
-{ label: "一点/有时", value: 1 },
-{ label: "中度/经常", value: 2 },
-{ label: "很多/很长", value: 3 },
-{ label: "非常多/一直", value: 4 }
-];
+        // 交感 (Sympathetic) 40-74
+        { id: 40, text: "经常汗流浃背并觉得热", branch: "sympathetic" }, { id: 41, text: "手脚冰凉、颤抖", branch: "sympathetic" }, { id: 42, text: "肌肉一直很紧张", branch: "sympathetic" },
+        { id: 43, text: "容易水肿", branch: "sympathetic" }, { id: 44, text: "容易神经质或易怒", branch: "sympathetic" }, { id: 45, text: "情绪紧张反应大", branch: "sympathetic" },
+        { id: 46, text: "在外面非常警惕", branch: "sympathetic" }, { id: 47, text: "可以非常疯狂", branch: "sympathetic" }, { id: 48, text: "反应过度", branch: "sympathetic" },
+        { id: 49, text: "固执", branch: "sympathetic" }, { id: 50, text: "入睡困难或失眠", branch: "sympathetic" }, { id: 51, text: "感觉人都有威胁性", branch: "sympathetic" },
+        { id: 52, text: "需要运动来感觉良好", branch: "sympathetic" }, { id: 53, text: "对压力敏感", branch: "sympathetic" }, { id: 54, text: "冲动", branch: "sympathetic" },
+        { id: 55, text: "感到威胁时好斗", branch: "sympathetic" }, { id: 56, text: "到晚上也在考虑问题", branch: "sympathetic" }, { id: 57, text: "胆囊有问题", branch: "sympathetic" },
+        { id: 58, text: "饭后腹痛", branch: "sympathetic" }, { id: 59, text: "胃炎或溃疡", branch: "sympathetic" }, { id: 60, text: "消化慢", branch: "sympathetic" },
+        { id: 61, text: "便秘", branch: "sympathetic" }, { id: 62, text: "心率高于80次/min", branch: "sympathetic" }, { id: 63, text: "血压高", branch: "sympathetic" },
+        { id: 64, text: "心律不齐", branch: "sympathetic" }, { id: 65, text: "心跳快且能感觉到", branch: "sympathetic" }, { id: 66, text: "胖不起来", branch: "sympathetic" },
+        { id: 67, text: "肚子相对于身体很胖", branch: "sympathetic" }, { id: 68, text: "关节、肌肉背痛", branch: "sympathetic" }, { id: 69, text: "牙关紧闭或下巴紧绷", branch: "sympathetic" },
+        { id: 70, text: "血糖高", branch: "sympathetic" }, { id: 71, text: "常出现感染", branch: "sympathetic" }, { id: 72, text: "磨牙", branch: "sympathetic" },
+        { id: 73, text: "呼吸短促浅", branch: "sympathetic" }, { id: 74, text: "性生活不满足", branch: "sympathetic" },
 
-const answers = {};
+        // 新迷走 (Ventral Vagal) 75-95
+        { id: 75, text: "无法边吃饭边呼吸", branch: "ventral" }, { id: 76, text: "调节吃饭与呼吸困难", branch: "ventral" }, { id: 77, text: "调节吃饭与说话困难", branch: "ventral" },
+        { id: 78, text: "吃饭声音大", branch: "ventral" }, { id: 79, text: "讲话时常咳嗽/吞口水", branch: "ventral" }, { id: 80, text: "食物卡在喉咙感", branch: "ventral" },
+        { id: 81, text: "口水在嘴角感", branch: "ventral" }, { id: 82, text: "眼球运动控制困难", branch: "ventral" }, { id: 83, text: "耳鸣或眩晕", branch: "ventral" },
+        { id: 84, text: "鼻炎/过敏/鼻窦炎", branch: "ventral" }, { id: 85, text: "容易喘不过气", branch: "ventral" }, { id: 86, text: "慢性咳嗽", branch: "ventral" },
+        { id: 87, text: "有胸痛", branch: "ventral" }, { id: 88, text: "吸不到氧气感", branch: "ventral" }, { id: 89, text: "有哮喘", branch: "ventral" },
+        { id: 90, text: "自身免疫性疾病", branch: "ventral" }, { id: 91, text: "感觉疲惫", branch: "ventral" }, { id: 92, text: "感染治愈慢", branch: "ventral" },
+        { id: 93, text: "心脏问题/心跳过快", branch: "ventral" }, { id: 94, text: "血压低(低于110)", branch: "ventral" }, { id: 95, text: "头皮痒", branch: "ventral" }
+    ];
 
-function init() {
-const list = document.getElementById('questions-list');
-questionsData.forEach(q => {
-const card = document.createElement('div');
-card.className = "bg-white p-5 rounded-xl mb-4 shadow-sm border border-gray-100";
-card.innerHTML = `
-<p class="text-gray-800 font-medium mb-4">${q.id}. ${q.text}</p>
-<div class="grid grid-cols-1 gap-2">
-${options.map(opt => `
-<button class="option-btn text-left px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-blue-50" 
-onclick="selectOption(${q.id}, ${opt.value}, this)">
-${opt.label}
-</button>
-`).join('')}
-</div>
-`;
-list.appendChild(card);
-});
-}
+    const branchProfiles = {
+        dorsal: {
+            name: "原始迷走神经 (Dorsal Vagal)",
+            max: 156, // 39题 * 4
+            color: "#10b981",
+            desc: "该分支受损或过度主导通常与“冻结”或“关闭”反应有关。典型症状包括严重的消化系统问题、晕厥感、寒冷。患者可能感到极度疲惫、情感解离或社交退缩。"
+        },
+        sympathetic: {
+            name: "交感神经 (Sympathetic)",
+            max: 140, // 35题 * 4
+            color: "#ef4444",
+            desc: "该分支过度激活表现为“战斗或逃跑”反应。典型症状包括高唤醒状态、心慌、血压高、睡眠障碍、肌肉紧绷。患者常感到焦虑、恐惧、易怒或高度警惕。"
+        },
+        ventral: {
+            name: "新迷走神经 (Ventral Vagal)",
+            max: 84, // 21题 * 4
+            color: "#3b82f6",
+            desc: "该分支负责社会参与系统。高得分可能代表系统处于“混乱”或“过敏”状态，表现为面部表情控制困难、耳鸣眩晕、吞咽困难或免疫系统问题（如过敏）。"
+        }
+    };
 
-window.selectOption = function(qId, val, btn) {
-// Clear active sibling buttons
-const siblings = btn.parentElement.querySelectorAll('.option-btn');
-siblings.forEach(s => s.classList.remove('active'));
-// Mark active
-btn.classList.add('active');
-answers[qId] = val;
+    const userAnswers = {};
 
-// Update progress bar
-const answeredCount = Object.keys(answers).length;
-const progress = (answeredCount / questionsData.length) * 100;
-document.getElementById('progress-inner').style.width = `${progress}%`;
-}
+    function initSurvey() {
+        const container = document.getElementById('questions-list');
+        if (!container) return;
 
-document.getElementById('submit-btn').onclick = function() {
-const answeredCount = Object.keys(answers).length;
-if (answeredCount < questionsData.length) {
-if(!confirm(`你还有 ${questionsData.length - answeredCount} 道题没做。确认现在生成结果吗？（未做题目计为0分）`)) return;
-}
+        let html = '';
+        questionsData.forEach(q => {
+            html += `
+                <div class="bg-white p-5 rounded-xl mb-4 shadow-sm border border-gray-100">
+                    <p class="text-gray-800 font-medium mb-4 text-sm sm:text-base">${q.id}. ${q.text}</p>
+                    <div class="flex flex-row gap-1">
+                        ${[0,1,2,3,4].map(val => {
+                            const labels = ["不", "一点", "中度", "很多", "一直"];
+                            return `<button onclick="handleSelect(this, ${q.id}, ${val})" class="option-btn py-3 rounded-lg text-xs">${labels[val]}</button>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
 
-calculateResult();
-document.getElementById('result-modal').classList.remove('hidden');
-};
+    window.handleSelect = function(btn, qId, val) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        userAnswers[qId] = val;
+        const count = Object.keys(userAnswers).length;
+        document.getElementById('progress-inner').style.width = (count / 95 * 100) + '%';
+        document.getElementById('progress-text').innerText = `已完成 ${count} / 95`;
+    }
 
-function calculateResult() {
-let scores = {
-dorsal: { total: 0, label: "原始迷走神经分支", color: "#10b981", desc: "（休息-消化/冻结）" },
-sympathetic: { total: 0, label: "交感神经分支", color: "#ef4444", desc: "（战斗/逃跑）" },
-ventral: { total: 0, label: "新迷走神经分支", color: "#3b82f6", desc: "（社交互动）" }
-};
+    window.closeModal = function() {
+        document.getElementById('result-modal').classList.remove('show');
+    }
 
-questionsData.forEach(q => {
-const val = answers[q.id] || 0;
-scores[q.branch].total += val;
-});
+    window.handleSubmit = function() {
+        const totalQuestions = 95;
+        const answered = Object.keys(userAnswers).length;
 
-const sumAll = scores.dorsal.total + scores.sympathetic.total + scores.ventral.total;
-const container = document.getElementById('charts-container');
-container.innerHTML = '';
+        if (answered < totalQuestions) {
+            if (!confirm(`您还有 ${totalQuestions - answered} 道题未填。未填题目将计为0分。确定提交？`)) return;
+        }
 
-Object.keys(scores).forEach(key => {
-const item = scores[key];
-const percentage = sumAll > 0 ? ((item.total / sumAll) * 100).toFixed(1) : 0;
-const div = document.createElement('div');
-div.className = "p-4 rounded-xl border border-gray-100 bg-gray-50";
-div.innerHTML = `
-<div class="flex justify-between items-center mb-2">
-<div>
-<span class="font-bold text-gray-700">${item.label}</span>
-<span class="text-xs text-gray-400 block">${item.desc}</span>
-</div>
-<span class="text-2xl font-black" style="color: ${item.color}">${percentage}%</span>
-</div>
-<div class="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
-<div class="h-full" style="width: ${percentage}%; background-color: ${item.color}"></div>
-</div>
-<div class="mt-2 text-right text-xs text-gray-500">该部分得分: ${item.total} 分</div>
-`;
-container.appendChild(div);
-});
-// Summary text
-const summary = document.createElement('div');
-summary.className = "text-center pt-4";
-summary.innerHTML = `<p class="text-gray-600 font-medium">系统总分值：${sumAll} 分</p>`;
-container.appendChild(summary);
-}
+        let totalScore = 0;
+        const scores = { dorsal: 0, sympathetic: 0, ventral: 0 };
+        questionsData.forEach(q => {
+            const val = userAnswers[q.id] || 0;
+            scores[q.branch] += val;
+            totalScore += val;
+        });
 
-document.getElementById('close-modal').onclick = () => {
-document.getElementById('result-modal').classList.add('hidden');
-};
+        // 占比计算
+        const ratios = {
+            dorsal: (scores.dorsal / branchProfiles.dorsal.max) * 100,
+            sympathetic: (scores.sympathetic / branchProfiles.sympathetic.max) * 100,
+            ventral: (scores.ventral / branchProfiles.ventral.max) * 100
+        };
 
-init();
+        // 1. 总分评估
+        let statusTitle = "", statusColor = "", statusBg = "";
+        if (totalScore < 76) {
+            statusTitle = "无显著损伤 / 功能良好";
+            statusColor = "text-green-700";
+            statusBg = "bg-green-50 border-green-200";
+        } else if (totalScore <= 190) {
+            statusTitle = "轻度至中度功能障碍";
+            statusColor = "text-yellow-700";
+            statusBg = "bg-yellow-50 border-yellow-200";
+        } else {
+            statusTitle = "重度功能障碍 / 主要失衡";
+            statusColor = "text-red-700";
+            statusBg = "bg-red-50 border-red-200";
+        }
+
+        document.getElementById('overall-status').className = `mb-8 text-center p-6 rounded-xl border-2 ${statusBg}`;
+        document.getElementById('overall-status').innerHTML = `
+            <p class="text-sm uppercase tracking-widest text-gray-500 font-semibold mb-1">总分评估 (${totalScore}分)</p>
+            <h3 class="text-2xl font-black ${statusColor}">${statusTitle}</h3>
+        `;
+
+        // 2. 分支渲染
+        let branchHtml = '';
+        ['dorsal', 'sympathetic', 'ventral'].forEach(key => {
+            const p = branchProfiles[key];
+            const ratio = ratios[key].toFixed(1);
+            branchHtml += `
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-gray-700">${p.name}</span>
+                        <span class="text-2xl font-black italic" style="color: ${p.color}">${ratio}%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden mb-3">
+                        <div class="h-full transition-all duration-1000" style="width: ${ratio}%; background-color: ${p.color}"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 leading-relaxed">${p.desc}</p>
+                </div>
+            `;
+        });
+        document.getElementById('charts-container').innerHTML = branchHtml;
+
+        // 3. 综合模式分析
+        let patternHtml = '<h3 class="font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-3">综合模式分析模式报告</h3>';
+        let conclusion = "";
+
+        // 判定逻辑
+        if (ratios.sympathetic > 20 && (ratios.sympathetic - ratios.dorsal >= 20) && (ratios.sympathetic - ratios.ventral >= 20)) {
+            conclusion = "模式一：交感神经主导型";
+            patternHtml += `<div class="bg-red-50 p-4 rounded-lg mb-4 text-red-900"><p class="font-bold">核心状态：</p><p class="text-sm">处于慢性的“战斗或逃跑”状态。通常由长期压力引起。</p></div>
+                <div class="text-sm text-gray-600 space-y-2">
+                    <p><b>身体症状：</b>严重疲劳但无法放松、睡眠障碍、心悸、肌肉过度紧张。</p>
+                    <p><b>心理状态：</b>易怒、焦虑、情绪反应过大、缺乏自主和自由感。</p>
+                </div>`;
+        } else if (ratios.dorsal > 20 && ratios.dorsal === Math.max(ratios.dorsal, ratios.sympathetic, ratios.ventral)) {
+            conclusion = "模式二：原始迷走神经主导型";
+            patternHtml += `<div class="bg-green-50 p-4 rounded-lg mb-4 text-green-900"><p class="font-bold">核心状态：</p><p class="text-sm">处于“冻结”或“关闭”状态。作为应对极度绝望的最后防御机制。</p></div>
+                <div class="text-sm text-gray-600 space-y-2">
+                    <p><b>身体症状：</b>消化系统停滞、身体寒冷、晕厥感。若伴随交感高分，会出现剧烈内脏疼痛。</p>
+                    <p><b>心理状态：</b>抑郁、绝望、情感麻木（解离）、社交退缩。</p>
+                </div>`;
+        } else if (ratios.ventral > 50) {
+            conclusion = "模式三：新迷走神经“高反应”/混合型";
+            patternHtml += `<div class="bg-blue-50 p-4 rounded-lg mb-4 text-blue-900"><p class="font-bold">核心状态：</p><p class="text-sm">该系统处于“混乱”或“过敏”状态。表现为社交参与系统正在经历挣扎。</p></div>
+                <div class="text-sm text-gray-600 space-y-2">
+                    <p><b>身体症状：</b>免疫系统过度活跃（过敏）、耳鸣、吞咽困难或说话声音改变。</p>
+                    <p><b>心理状态：</b>对环境或人际互动存在防御性反应，可能表现为过度敏感。</p>
+                </div>`;
+        } else if (ratios.ventral > 50 && ratios.sympathetic > 50 && ratios.dorsal < 20) {
+            conclusion = "模式四：交感与新迷走神经冲突型";
+            patternHtml += `<div class="bg-purple-50 p-4 rounded-lg mb-4 text-purple-900"><p class="font-bold">核心状态：</p><p class="text-sm">身体同时表现出焦虑和特定的社会参与系统症状，缺乏平稳性。</p></div>
+                <div class="text-sm text-gray-600 space-y-2">
+                    <p><b>症状表现：</b>症状交替出现，一组为肌肉紧张，另一组为免疫或神经性疼痛。</p>
+                </div>`;
+        } else {
+            conclusion = "模式：非典型性平衡/混合失调";
+            patternHtml += `<p class="text-sm text-gray-600">您的数据未表现出明显单一的病理模式，建议结合各分支占比进行细化观察。</p>`;
+        }
+
+        document.getElementById('pattern-analysis').innerHTML = `
+            <div class="text-center mb-4"><span class="bg-gray-800 text-white px-3 py-1 rounded-full text-xs font-bold">${conclusion}</span></div>
+            ${patternHtml}
+        `;
+
+        document.getElementById('result-modal').classList.add('show');
+    }
+
+    initSurvey();
 </script>
 </body>
 </html>
